@@ -1,46 +1,61 @@
 #include <iostream>
+#include <stdlib.h>
 #include <SDL2/SDL.h>
 
 static bool Running;
+static SDL_Texture *Texture;
+static void *Pixels;
+static int TextureWidth;
 
-void HandleEvent(SDL_Event *Event)
-{
-    switch(Event->type)
-    {
-        case SDL_QUIT:
-        {
+static void SDLResizeTexture(SDL_Renderer *Renderer, int Width, int Height) {
+    if (Pixels) {
+        free(Pixels);
+    }
+    if (Texture) {
+        SDL_DestroyTexture(Texture);
+    }
+    Texture = SDL_CreateTexture(Renderer,
+                                SDL_PIXELFORMAT_ARGB8888,
+                                SDL_TEXTUREACCESS_STREAMING,
+                                Width,
+                                Height);
+    TextureWidth = Width;
+    Pixels = malloc(Width * Height * 4);
+}
+
+static void SDLUpdateWindow(SDL_Window *Window, SDL_Renderer *Renderer) {
+    SDL_UpdateTexture(Texture, 0, Pixels, TextureWidth * 4);
+
+    SDL_RenderCopy(Renderer, Texture, 0, 0);
+
+    SDL_RenderPresent(Renderer);
+}
+
+void HandleEvent(SDL_Event *Event) {
+    switch (Event->type) {
+        case SDL_QUIT: {
             Running = false;
-        } break;
-        case SDL_WINDOWEVENT:
-        {
-            switch(Event->window.event)
-            {
-                case SDL_WINDOWEVENT_RESIZED:
-                {
-                    printf("SDL_WINDOWEVENT_RESIZED (%d, %d)\n", Event->window.data1, Event->window.data2);
-                } break;
-                case SDL_WINDOWEVENT_EXPOSED:
-                {
+        }
+            break;
+        case SDL_WINDOWEVENT: {
+            switch (Event->window.event) {
+                case SDL_WINDOWEVENT_RESIZED: {
                     SDL_Window *Window = SDL_GetWindowFromID(Event->window.windowID);
                     SDL_Renderer *Renderer = SDL_GetRenderer(Window);
-                    static bool IsWhite = true;
+                    printf("SDL_WINDOWEVENT_RESIZED (%d, %d)\n", Event->window.data1, Event->window.data2);
+                    SDLResizeTexture(Renderer, Event->window.data1, Event->window.data2);
+                }
+                    break;
+                case SDL_WINDOWEVENT_EXPOSED: {
+                    SDL_Window *Window = SDL_GetWindowFromID(Event->window.windowID);
+                    SDL_Renderer *Renderer = SDL_GetRenderer(Window);
 
-                    if (IsWhite == true)
-                    {
-                        SDL_SetRenderDrawColor(Renderer, 255, 255, 255, 255);
-                        IsWhite = false;
-                    }
-                    else
-                    {
-                        SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 255);
-                        IsWhite = true;
-                    }
-
-                    SDL_RenderClear(Renderer);
-                    SDL_RenderPresent(Renderer);
-                } break;
+                    SDLUpdateWindow(Window, Renderer);
+                }
+                    break;
             }
-        } break;
+        }
+            break;
     }
 }
 
@@ -52,14 +67,20 @@ int main() {
 
     SDL_Window *Window;
 
-    Window = SDL_CreateWindow("Handmade Sokoban", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480,
+    int Width = 640;
+    int Height = 480;
+    Window = SDL_CreateWindow("Handmade Sokoban", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                              Width, Height,
                               SDL_WINDOW_RESIZABLE);
 
     SDL_Renderer *Renderer = SDL_CreateRenderer(Window, -1, 0);
 
+    SDL_Texture *Texture = SDL_CreateTexture(Renderer, SDL_PIXELFORMAT_ABGR8888,
+                                             SDL_TEXTUREACCESS_STREAMING, Width,
+                                             Height);
+
     Running = true;
-    while(Running)
-    {
+    while (Running) {
         SDL_Event Event;
         SDL_WaitEvent(&Event);
         HandleEvent(&Event);
