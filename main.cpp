@@ -1,16 +1,15 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 
-bool HandleEvent(SDL_Event *Event)
-{
-    bool ShouldQuit = false;
+static bool Running;
 
+void HandleEvent(SDL_Event *Event)
+{
     switch(Event->type)
     {
         case SDL_QUIT:
         {
-            printf("SQL_QUIT\n");
-            ShouldQuit = true;
+            Running = false;
         } break;
         case SDL_WINDOWEVENT:
         {
@@ -25,6 +24,7 @@ bool HandleEvent(SDL_Event *Event)
                     SDL_Window *Window = SDL_GetWindowFromID(Event->window.windowID);
                     SDL_Renderer *Renderer = SDL_GetRenderer(Window);
                     static bool IsWhite = true;
+
                     if (IsWhite == true)
                     {
                         SDL_SetRenderDrawColor(Renderer, 255, 255, 255, 255);
@@ -42,8 +42,6 @@ bool HandleEvent(SDL_Event *Event)
             }
         } break;
     }
-
-    return(ShouldQuit);
 }
 
 int main() {
@@ -59,13 +57,12 @@ int main() {
 
     SDL_Renderer *Renderer = SDL_CreateRenderer(Window, -1, 0);
 
-    for (;;)
+    Running = true;
+    while(Running)
     {
         SDL_Event Event;
         SDL_WaitEvent(&Event);
-        if (HandleEvent(&Event)) {
-            break;
-        }
+        HandleEvent(&Event);
     }
 
     SDL_Quit();
